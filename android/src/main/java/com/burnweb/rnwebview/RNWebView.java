@@ -13,6 +13,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.content.Intent;
 
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.common.SystemClock;
@@ -37,6 +38,16 @@ class RNWebView extends WebView implements LifecycleEventListener {
     protected class EventWebClient extends WebViewClient {
         public boolean shouldOverrideUrlLoading(WebView view, String url){
             int navigationType = 0;
+             Intent intent;
+
+            if (url.contains("intent")) {
+                intent = new Intent(Intent.ACTION_VIEW);
+                String[] split = url.split("#");
+                String data = split[0].replaceFirst("intent", "connectpro");
+                intent.setData(Uri.parse(data));
+                getContext().startActivity(intent);
+                return true;
+            }
 
             if (currentUrl.equals(url) || url.equals("about:blank")) { // for regular .reload() and html reload.
                 navigationType = 3;
