@@ -14,13 +14,15 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.content.Intent;
-
+import android.content.pm.PackageManager;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.common.SystemClock;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.UIManagerModule;
 import com.facebook.react.uimanager.events.EventDispatcher;
+import android.widget.Toast;
+import android.content.Context;
 
 class RNWebView extends WebView implements LifecycleEventListener {
 
@@ -34,13 +36,25 @@ class RNWebView extends WebView implements LifecycleEventListener {
 
     private String currentUrl = "";
     private String shouldOverrideUrlLoadingUrl = "";
+    
 
     protected class EventWebClient extends WebViewClient {
         public boolean shouldOverrideUrlLoading(WebView view, String url){
             int navigationType = 0;
              Intent intent;
 
+            if(url.contains("market")){
+                String playStoreMarketPrefix = "market://details?id=";
+                getContext().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(playStoreMarketPrefix + "air.com.adobe.connectpro")));
+                return true;
+            }
             if (url.contains("intent")) {
+                if(!isPackageInstalled("air.com.adobe.connectpro",getContext())){
+                    Toast.makeText(getContext(), "Bạn chưa cai đặt ứng dung adobe connect vui lòng click vào nút  'Get Adobe Connect Mobile' ", Toast.LENGTH_LONG).show();                   
+                    // view.loadDataWithBaseURL(shouldOverrideUrlLoadingUrl, "<html></html>", "text/html", "UTF-8", null);
+                    return true;
+                }
+
                 intent = new Intent(Intent.ACTION_VIEW);
                 String[] split = url.split("#");
                 String data = split[0].replaceFirst("intent", "connectpro");
@@ -60,6 +74,14 @@ class RNWebView extends WebView implements LifecycleEventListener {
         }
 
         public void onPageFinished(WebView view, String url) {
+
+                if (url.contains("intent")) {
+                    if(!isPackageInstalled("air.com.adobe.connectpro",getContext())){
+                        // Toast.makeText(getContext(), "Chua cai day app adobe connect", Toast.LENGTH_LONG).show();                   
+                        view.loadDataWithBaseURL(shouldOverrideUrlLoadingUrl, "<html></html>", "text/html", "UTF-8", null);
+                        return;
+                    }
+                }
             mEventDispatcher.dispatchEvent(new NavigationStateChangeEvent(getId(), SystemClock.nanoTime(), view.getTitle(), false, url, view.canGoBack(), view.canGoForward()));
 
             currentUrl = url;
@@ -71,6 +93,16 @@ class RNWebView extends WebView implements LifecycleEventListener {
 
         public void onPageStarted(WebView view, String url, Bitmap favicon) {
             mEventDispatcher.dispatchEvent(new NavigationStateChangeEvent(getId(), SystemClock.nanoTime(), view.getTitle(), true, url, view.canGoBack(), view.canGoForward()));
+        }
+
+        private boolean isPackageInstalled(String packagename, Context context) {
+            try {
+                PackageManager packageManager = context.getPackageManager();
+                packageManager.getPackageInfo(packagename, 0);
+                return true;
+            } catch (PackageManager.NameNotFoundException e) {
+                return false;
+            }
         }
     }
 
